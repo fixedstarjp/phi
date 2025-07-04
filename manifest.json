@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Phi-4 Mini AI Assistant",
+  "version": "1.0",
+  "description": "ローカル環境でPhi-4 miniモデルを使用した AI アシスタント",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Phi-4 Mini AI Assistant"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["models/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

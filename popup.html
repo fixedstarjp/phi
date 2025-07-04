@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phi-4 Mini AI Assistant</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🤖 Phi-4 Mini AI</h1>
+      <div class="model-status">
+        <span id="modelStatus">モデル読み込み中...</span>
+      </div>
+    </div>
+    
+    <div class="quick-actions">
+      <button id="summarizeBtn" class="action-btn" disabled>
+        📄 ページ要約
+      </button>
+      <button id="translateBtn" class="action-btn" disabled>
+        🈯 選択テキスト翻訳
+      </button>
+    </div>
+    
+    <div class="chat-container">
+      <div id="chatHistory" class="chat-history"></div>
+      <div class="input-container">
+        <input type="text" id="messageInput" placeholder="メッセージを入力..." disabled>
+        <button id="sendBtn" class="send-btn" disabled>送信</button>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <button id="clearBtn" class="clear-btn">履歴クリア</button>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
