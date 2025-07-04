@@ -8,7 +8,10 @@
     "dev": "webpack --mode development --watch"
   },
   "dependencies": {
-    "@xenova/transformers": "^2.14.0"
+    "@babel/core": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "@xenova/transformers": "^2.14.0",
+    "babel-loader": "^10.0.0"
   },
   "devDependencies": {
     "webpack": "^5.89.0",
