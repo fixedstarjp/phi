@@ -18,13 +18,12 @@ class AIModel {
     try {
       console.log('Loading Phi-4 Mini model...');
       
-      // Phi-4 miniモデルを読み込み
-      // 注意: 実際のモデルパスは調整が必要
+      // StableLM Zephyr 1.6B モデルを読み込み（Phi-4の代替）
+      // 軽量で高性能なテキスト生成モデル
       this.model = await pipeline(
         'text-generation',
-        'microsoft/Phi-3-mini-4k-instruct',
+        'Xenova/stablelm-2-zephyr-1_6b',
         {
-          device: 'webgpu',
           dtype: 'q4',
           use_cache: true
         }
