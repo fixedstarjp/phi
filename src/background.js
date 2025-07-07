@@ -9,6 +9,7 @@ class AIModel {
     this.model = null;
     this.isLoading = false;
     this.isReady = false;
+    this.currentModelName = 'StableLM-2-Zephyr-1.6B';
   }
 
   async loadModel() {
@@ -16,10 +17,10 @@ class AIModel {
     
     this.isLoading = true;
     try {
-      console.log('Loading Phi-4 Mini model...');
+      console.log('Loading StableLM-2-Zephyr-1.6B model...');
+      this.notifyModelLoading();
       
-      // StableLM Zephyr 1.6B モデルを読み込み（Phi-4の代替）
-      // 軽量で高性能なテキスト生成モデル
+      // StableLM Zephyr 1.6B モデルを読み込み（軽量で高性能）
       this.model = await pipeline(
         'text-generation',
         'Xenova/stablelm-2-zephyr-1_6b',
@@ -33,8 +34,6 @@ class AIModel {
       this.isLoading = false;
       
       console.log('Model loaded successfully');
-      
-      // すべてのタブに準備完了を通知
       this.notifyModelReady();
       
     } catch (error) {
@@ -50,24 +49,35 @@ class AIModel {
     }
 
     try {
-      const response = await this.model(prompt, {
+      // StableLM用のプロンプト形式に調整
+      const formattedPrompt = `<|user|>\n${prompt}\n<|assistant|>\n`;
+      
+      const response = await this.model(formattedPrompt, {
         max_new_tokens: maxTokens,
         do_sample: true,
         temperature: 0.7,
         top_p: 0.9,
-        repetition_penalty: 1.1
+        repetition_penalty: 1.1,
+        return_full_text: false
       });
 
-      return response[0].generated_text.slice(prompt.length);
+      return response[0].generated_text;
     } catch (error) {
       console.error('Generation error:', error);
       throw error;
     }
   }
 
+  notifyModelLoading() {
+    chrome.runtime.sendMessage({
+      type: 'MODEL_LOADING'
+    });
+  }
+
   notifyModelReady() {
     chrome.runtime.sendMessage({
-      type: 'MODEL_READY'
+      type: 'MODEL_READY',
+      modelName: this.currentModelName
     });
   }
 
@@ -107,7 +117,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     case 'GET_MODEL_STATUS':
       sendResponse({
         isLoading: aiModel.isLoading,
-        isReady: aiModel.isReady
+        isReady: aiModel.isReady,
+        modelName: aiModel.currentModelName
       });
       return true;
 
@@ -153,7 +164,7 @@ ${request.text}
         return true;
       }
 
-      const translatePrompt = `以下のテキストを日本語に翻訳してください：
+      const translatePrompt = `以下のテキストを自然な日本語に翻訳してください：
 
 ${request.text}
 
@@ -177,13 +188,13 @@ ${request.text}
 // コンテキストメニューの設定
 chrome.contextMenus.create({
   id: "summarize",
-  title: "Phi-4で要約",
+  title: "🤖 AIで要約",
   contexts: ["selection"]
 });
 
 chrome.contextMenus.create({
   id: "translate",
-  title: "Phi-4で日本語翻訳",
+  title: "🈯 AIで日本語翻訳",
   contexts: ["selection"]
 });
 
