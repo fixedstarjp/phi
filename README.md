@@ -103,6 +103,16 @@ StableLM-Chrome-Extension/
 
 ## 🐛 トラブルシューティング
 
+### WebAssemblyエラー
+```
+❌ エラー: no available backend found. ERR: [wasm] RuntimeError: Aborted(CompileError: WebAssembly.instantiate(): Refused to compile or instantiate WebAssembly module because neither 'wasm-eval' nor 'unsafe-eval' is an allowed source of script in the following Content Security Policy directive: "script-src 'self'")
+```
+**解決方法**: 
+1. **manifest.json確認**: Content Security Policyが正しく設定されていることを確認
+2. **拡張機能再読み込み**: chrome://extensions/ で拡張機能を無効化→再有効化
+3. **ブラウザ再起動**: Chromeを完全に再起動
+4. **フォールバックモデル**: StableLMが失敗した場合、GPT-2モデルが自動的に読み込まれます
+
 ### ダウンロード進捗が止まる
 ```
 進捗バーが動かない場合
@@ -111,6 +121,7 @@ StableLM-Chrome-Extension/
 1. インターネット接続を確認
 2. 拡張機能を無効化→再有効化
 3. ブラウザを再起動
+4. キャッシュクリア: chrome://settings/content/all でデータをクリア
 
 ### メッセージチャンネルエラー
 ```
@@ -120,6 +131,11 @@ StableLM-Chrome-Extension/
 1. 拡張機能を再読み込み
 2. Chrome Developer Tools でエラー確認
 3. 必要に応じてブラウザ再起動
+
+### モデル切り替えについて
+- **プライマリ**: StableLM-2-Zephyr-1.6B（高性能）
+- **フォールバック**: GPT-2（軽量、互換性重視）
+- 自動的にフォールバックモデルに切り替わります
 
 ### メモリ不足エラー
 ```
