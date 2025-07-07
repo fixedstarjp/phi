@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "Phi-4 Mini AI Assistant",
+  "name": "StableLM AI Assistant",
   "version": "1.0",
-  "description": "ローカル環境でPhi-4 miniモデルを使用した AI アシスタント",
+  "description": "StableLM-2-Zephyr-1.6Bモデルを使用したローカルAIアシスタント",
   "permissions": [
     "activeTab",
     "storage",
-    "scripting"
+    "scripting",
+    "contextMenus"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -22,7 +23,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Phi-4 Mini AI Assistant"
+    "default_title": "StableLM AI Assistant"
   },
   "icons": {
     "16": "icons/icon16.png",
