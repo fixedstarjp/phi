@@ -4,6 +4,7 @@ class PopupUI {
     this.chatHistory = [];
     this.isModelReady = false;
     this.modelName = 'StableLM-2-Zephyr-1.6B';
+    this.downloadProgress = 0;
     this.initializeElements();
     this.setupEventListeners();
     this.loadChatHistory();
@@ -18,6 +19,75 @@ class PopupUI {
     this.messageInput = document.getElementById('messageInput');
     this.sendBtn = document.getElementById('sendBtn');
     this.clearBtn = document.getElementById('clearBtn');
+    
+    // 進捗バーを作成
+    this.createProgressBar();
+  }
+
+  createProgressBar() {
+    // 進捗バーのHTML要素を作成
+    const progressContainer = document.createElement('div');
+    progressContainer.id = 'progressContainer';
+    progressContainer.style.cssText = `
+      display: none;
+      margin: 10px 0;
+      background: rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 8px;
+    `;
+
+    const progressLabel = document.createElement('div');
+    progressLabel.id = 'progressLabel';
+    progressLabel.style.cssText = `
+      color: white;
+      font-size: 12px;
+      margin-bottom: 5px;
+      text-align: center;
+    `;
+    progressLabel.textContent = 'モデルダウンロード中...';
+
+    const progressBarContainer = document.createElement('div');
+    progressBarContainer.style.cssText = `
+      background: rgba(255,255,255,0.2);
+      border-radius: 4px;
+      height: 6px;
+      overflow: hidden;
+    `;
+
+    const progressBar = document.createElement('div');
+    progressBar.id = 'progressBar';
+    progressBar.style.cssText = `
+      background: linear-gradient(90deg, #4CAF50, #8BC34A);
+      height: 100%;
+      width: 0%;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+    `;
+
+    const progressText = document.createElement('div');
+    progressText.id = 'progressText';
+    progressText.style.cssText = `
+      color: white;
+      font-size: 11px;
+      text-align: center;
+      margin-top: 5px;
+    `;
+    progressText.textContent = '0%';
+
+    progressBarContainer.appendChild(progressBar);
+    progressContainer.appendChild(progressLabel);
+    progressContainer.appendChild(progressBarContainer);
+    progressContainer.appendChild(progressText);
+
+    // ヘッダーの後に挿入
+    const header = document.querySelector('.header');
+    header.appendChild(progressContainer);
+
+    this.progressContainer = progressContainer;
+    this.progressBar = progressBar;
+    this.progressText = progressText;
+    this.progressLabel = progressLabel;
   }
 
   setupEventListeners() {
@@ -41,6 +111,8 @@ class PopupUI {
         this.onModelReady(message.modelName);
       } else if (message.type === 'MODEL_ERROR') {
         this.onModelError(message.error);
+      } else if (message.type === 'DOWNLOAD_PROGRESS') {
+        this.updateDownloadProgress(message.progress);
       }
     });
   }
@@ -51,6 +123,9 @@ class PopupUI {
       
       if (response.isLoading) {
         this.onModelLoading();
+        if (response.progress) {
+          this.updateDownloadProgress(response.progress);
+        }
       } else if (response.isReady) {
         this.onModelReady(response.modelName);
       } else {
@@ -64,7 +139,8 @@ class PopupUI {
 
   onModelLoading() {
     this.isModelReady = false;
-    this.updateStatus('loading', '⏳ StableLM-2-Zephyr-1.6B 読み込み中...');
+    this.updateStatus('loading', '⏳ StableLM-2-Zephyr-1.6B ダウンロード中...');
+    this.showProgressBar();
     this.disableUI();
   }
 
@@ -72,6 +148,7 @@ class PopupUI {
     this.isModelReady = true;
     this.modelName = modelName || 'StableLM-2-Zephyr-1.6B';
     this.updateStatus('ready', `✅ ${this.modelName} 準備完了`);
+    this.hideProgressBar();
     this.enableUI();
     
     // 初回起動時のウェルカムメッセージ
@@ -83,8 +160,40 @@ class PopupUI {
   onModelError(error) {
     this.isModelReady = false;
     this.updateStatus('error', `❌ エラー: ${error}`);
+    this.hideProgressBar();
     this.disableUI();
     this.addMessage('ai', `申し訳ございません。モデルの読み込みでエラーが発生しました：\n${error}\n\n拡張機能を再起動してお試しください。`);
+  }
+
+  updateDownloadProgress(progress) {
+    this.downloadProgress = progress;
+    if (this.progressBar && this.progressText) {
+      this.progressBar.style.width = `${progress}%`;
+      this.progressText.textContent = `${progress}% (約800MB)`;
+      
+      // 進捗に応じてラベルを更新
+      if (progress < 10) {
+        this.progressLabel.textContent = 'モデルダウンロード開始中...';
+      } else if (progress < 50) {
+        this.progressLabel.textContent = 'モデルダウンロード中...';
+      } else if (progress < 90) {
+        this.progressLabel.textContent = 'ダウンロード完了間近...';
+      } else if (progress < 100) {
+        this.progressLabel.textContent = 'モデル初期化中...';
+      }
+    }
+  }
+
+  showProgressBar() {
+    if (this.progressContainer) {
+      this.progressContainer.style.display = 'block';
+    }
+  }
+
+  hideProgressBar() {
+    if (this.progressContainer) {
+      this.progressContainer.style.display = 'none';
+    }
   }
 
   updateStatus(status, message) {
