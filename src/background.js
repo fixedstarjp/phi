@@ -3,6 +3,11 @@ import { pipeline, env } from '@xenova/transformers';
 // WebAssemblyとWebGPUを使用するための設定
 env.allowLocalModels = true;
 env.useBrowserCache = true;
+env.allowRemoteModels = true;
+
+// WebAssembly設定
+env.backends.onnx.wasm.numThreads = 1;
+env.backends.onnx.wasm.simd = true;
 
 class AIModel {
   constructor() {
@@ -23,12 +28,24 @@ class AIModel {
       console.log('Loading StableLM-2-Zephyr-1.6B model...');
       this.notifyModelLoading();
       
+      // デバイス検出とフォールバック
+      let device = 'wasm';
+      try {
+        // WebGPUの可用性をチェック
+        if (navigator.gpu) {
+          device = 'webgpu';
+        }
+      } catch (e) {
+        console.log('WebGPU not available, using WASM');
+      }
+      
       // StableLM Zephyr 1.6B モデルを読み込み（軽量で高性能）
       this.model = await pipeline(
         'text-generation',
         'Xenova/stablelm-2-zephyr-1_6b',
         {
-          dtype: 'q4',
+          device: device,
+          dtype: device === 'webgpu' ? 'fp16' : 'q8',
           use_cache: true,
           progress_callback: (progress) => {
             this.handleDownloadProgress(progress);
@@ -40,14 +57,48 @@ class AIModel {
       this.isLoading = false;
       this.downloadProgress = 100;
       
-      console.log('Model loaded successfully');
+      console.log('Model loaded successfully with device:', device);
       this.notifyModelReady();
       
     } catch (error) {
       console.error('Model loading error:', error);
+      // フォールバック: より軽量なモデルを試行
+      await this.tryFallbackModel();
+    }
+  }
+
+  async tryFallbackModel() {
+    try {
+      console.log('Trying fallback model...');
+      this.notifyModelLoading();
+      
+      // より軽量なモデルにフォールバック
+      this.model = await pipeline(
+        'text-generation',
+        'Xenova/gpt2',
+        {
+          device: 'wasm',
+          dtype: 'q8',
+          use_cache: true,
+          progress_callback: (progress) => {
+            this.handleDownloadProgress(progress);
+          }
+        }
+      );
+      
+      this.currentModelName = 'GPT-2 (Fallback)';
+      this.isReady = true;
+      this.isLoading = false;
+      this.downloadProgress = 100;
+      
+      console.log('Fallback model loaded successfully');
+      this.notifyModelReady();
+      
+    } catch (fallbackError) {
+      console.error('Fallback model loading error:', fallbackError);
       this.isLoading = false;
       this.downloadProgress = 0;
-      this.notifyModelError(error.message);
+      this.notifyModelError('モデルの読み込みに失敗しました。ブラウザがWebAssemblyをサポートしていない可能性があります。');
     }
   }
 
@@ -69,11 +120,17 @@ class AIModel {
     }
 
     try {
-      // StableLM用のプロンプト形式に調整
-      const formattedPrompt = `<|user|>\n${prompt}\n<|assistant|>\n`;
+      // プロンプト形式を動的に調整
+      let formattedPrompt;
+      if (this.currentModelName.includes('StableLM')) {
+        formattedPrompt = `<|user|>\n${prompt}\n<|assistant|>\n`;
+      } else {
+        // GPT-2用のシンプルなフォーマット
+        formattedPrompt = prompt;
+      }
       
       const response = await this.model(formattedPrompt, {
-        max_new_tokens: maxTokens,
+        max_new_tokens: Math.min(maxTokens, 256), // トークン数を制限
         do_sample: true,
         temperature: 0.7,
         top_p: 0.9,
@@ -196,7 +253,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
 
           try {
-            const response = await aiModel.generateResponse(request.prompt, request.maxTokens || 512);
+            const response = await aiModel.generateResponse(request.prompt, request.maxTokens || 256);
             sendResponse({ success: true, response: response });
           } catch (error) {
             sendResponse({ success: false, error: error.message });
@@ -216,7 +273,7 @@ ${request.text}
 要約:`;
 
           try {
-            const response = await aiModel.generateResponse(summarizePrompt, 256);
+            const response = await aiModel.generateResponse(summarizePrompt, 200);
             sendResponse({ success: true, response: response });
           } catch (error) {
             sendResponse({ success: false, error: error.message });
@@ -236,7 +293,7 @@ ${request.text}
 日本語翻訳:`;
 
           try {
-            const response = await aiModel.generateResponse(translatePrompt, 256);
+            const response = await aiModel.generateResponse(translatePrompt, 200);
             sendResponse({ success: true, response: response });
           } catch (error) {
             sendResponse({ success: false, error: error.message });
